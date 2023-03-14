@@ -72,7 +72,7 @@ fData <- data.frame(gene_short_name = row.names(data), row.names = row.names(dat
 fd <- new('AnnotatedDataFrame', data = fData)
 
 #Construct monocle cds
-monoGERM <- newCellDataSet(data,
+monocle<- newCellDataSet(data,
                            phenoData = pd,
                            featureData = fd,
                            lowerDetectionLimit = 0.5,
@@ -82,11 +82,51 @@ Subset_Seurat <- FindVariableFeatures(Subset_Seurat, selection.method = "mean.va
 VariableFeatures(Subset_Seurat)
 seurat_var_genes = VariableFeatures(Subset_Seurat)
 head(seurat_var_genes)
-monoGERM <- estimateSizeFactors(monoGERM)
-monoGERM <- estimateDispersions(monoGERM)
-seur_var = setOrderingFilter(monoGERM, seurat_var_genes)
-plot_ordering_genes(seur_var)
-cds <- reduceDimension(seur_var, method = 'DDRTree')
+monocle <- estimateSizeFactors(monocle)
+monocle <- estimateDispersions(monocle)
+seurat_var = setOrderingFilter(monocle, seurat_var_genes)
+plot_ordering_genes(seurat_var)
+cds <- reduceDimension(seurat_var, method = 'DDRTree')
 cds <- orderCells(cds)
 plot_cell_trajectory(cds)
 plot_cell_trajectory(cds, color_by = "seurat_clusters")
+
+
+#############################################################################################
+         #########///////=========DESeq2 version=1.30.1========\\\\\\\#############
+#############################################################################################
+library(DESeq2)
+Data <- read.table("./Data.txt")
+
+DES_data<- DESeqDataSetFromMatrix(countData = Data,
+                                 colData = sampleTable,
+                                 design = ~Group)               
+DES_data <- DESeq(DES_data)
+results <- results(DES_data, pAdjustMethod = "fdr", alpha = 0.05)
+
+
+#############################################################################################
+         #########///////=========clusterProfiler version=3.18.1========\\\\\\\#############
+#############################################################################################
+library(clusterProfiler)
+library(AnnotationDbi)
+library(org.Mm.eg.db)
+
+data$entrez <- mapIds(org.Mm.eg.db,
+                     keys=row.names(data),
+                     column="ENTREZID",
+                     keytype="SYMBOL",
+                     multiVals="first")
+
+kegg_enrich <- enrichKEGG(gene = names(data),
+                          organism = 'mouse',
+                          pvalueCutoff = 0.05, 
+                          qvalueCutoff = 0.10)
+				 
+go_enrich <- enrichGO(gene = names(data),
+                      OrgDb = 'org.Mm.eg.db', 
+                      readable = T,
+                      ont = "BP",
+                      pvalueCutoff = 0.05, 
+                      qvalueCutoff = 0.10)			 
+		      
