@@ -1,1 +1,1 @@
-# Lsm14b ko mice sequencing data analysis script
+# Lsm14b KO mice sequencing data analysis script
